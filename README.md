@@ -1,4 +1,5 @@
 #QUADRO
+
 **quadro** is a theme manager for i3/bspwm/etc.../polybar/rofi
 
 ## What it can do?
