@@ -33,7 +33,7 @@ from os.path import expanduser, isdir, join
 import argparse
 from  sys import argv
 from glob import glob
-from shutil import copyfile
+from shutil import copyfile, which
 
 def build_colors(COL, SPEC):
     COL = ''.join([("\033]4;%s;%s\033\\" % (i, COL[i])) for i in range(0, len(COL))])
@@ -64,8 +64,8 @@ def save_theme(COL, SPEC, WALLPAPER, COLOR_SCHEME, SEQ):
 def apply(SEQ, WALLPAPER):
     exec(['feh', '--bg-scale', CURRENT_THEME_WALLPAPER])
     exec(['xrdb', '-merge', CURRENT_THEME_COLORS_RESOURCE])
-    exec(['i3-msg','reload'], stdout=null,
-                              stderr=null)
+    if which('i3'): exec(['i3-msg','reload'], stdout=null,
+                                              stderr=null)
     exec(['pkill', '-USR1', 'polybar'])
     for TERM in glob(TTY):
         with open(TERM, 'w') as T:
@@ -85,6 +85,11 @@ def get_seq():
 def get_themes():
     return listdir(THEMES_DIR)
 
+def check_dep():
+    for D in DEP:
+        if not which(D): print('[ERR] Missing dependency <' + D + '>'); exit(0)
+
+DEP = ['feh', 'polybar']
 HOME_DIR = expanduser('~')
 CONFIG_DIR = join(HOME_DIR, '.config', 'quadro')
 THEMES_DIR = join(CONFIG_DIR, 'themes')
@@ -126,6 +131,8 @@ if not isdir(CONFIG_DIR):
 
 if __name__ == '__main__':
     INSTALLED_THEMES = get_themes()
+
+    check_dep()
 
     if len(argv) < 2: # ON MISSING ARGS PRINT HELP AND QUIT
             p.print_help()
