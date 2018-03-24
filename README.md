@@ -45,7 +45,7 @@
 ## Theme Creation:
 to create a theme go in ```~/.config/quadro/themes/``` and make a folder for your theme
 inside the folder add a file called ```colors``` and your wallpaper called ```wallpaper.jpg```
-the file ```colors`` need this format to work properly (otherwise the colors will get scrambled)
+the file ```colors``` need this format to work properly (otherwise the colors will get scrambled)
 
 ```
 FOREGROUND
