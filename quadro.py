@@ -29,19 +29,30 @@
 from subprocess import Popen as exec
 from subprocess import DEVNULL as null
 from os import mkdir, mknod, listdir
-from os.path import expanduser, isdir, join
+from os.path import expanduser, isdir, join, exists
 import argparse
-from  sys import argv
+from  sys import argv, exit
 from glob import glob
 from shutil import copyfile, which
+
+
+def error(message, code):
+    print("ERROR: " + message, end="\n\n")
+    p.print_help()
+    exit(code)
+
+def check(path):
+    if exists(path):
+        if exists(path + "/colors"):
+            if exists(path + "/wallpaper.jpg"):
+                return True
+    error("Theme not found", 1)
 
 def build_colors(COL, SPEC):
     COL = ''.join([("\033]4;%s;%s\033\\" % (i, COL[i])) for i in range(0, len(COL))])
     COL += ("\033\\\033]%s;%s" % (10, SPEC[0]))
     COL += ("\033\\\033]%s;%s" % (11, SPEC[1]))
     COL += ("\033\\\033]%s;%s" % (12, SPEC[3]))
-    COL += ("\033\\\033]%s;%s" % (17, SPEC[1]))
-    COL += ("\033\\\033]%s;%s" % (19, SPEC[0]))
     COL += ("\033\\\033[s\033[1000H\033[8m\033]%s;%s\033\\\033[u" % (708, SPEC[2]))
     return COL 
 
@@ -53,20 +64,19 @@ def save_theme(COL, SPEC, WALLPAPER, COLOR_SCHEME, SEQ):
     COL.append('*background: %s' % (SPEC[1]))
     COL.append('*.borderColor: %s' % (SPEC[2]))
     COL.append('*.cursorColor: %s' % (SPEC[3]))
-    COL.append('*highlightColor: %s' % (SPEC[1]))
-    COL.append('*highlightTextColor: %s' % (SPEC[0]))
     with open(CURRENT_THEME_COLORS_RESOURCE, 'w') as file:
         for C in COL:
             file.writelines(C + '\n')
     with open(join(CURRENT_THEME, 'colors.seq'), 'w') as file:
         file.write(SEQ)
         
-def apply(SEQ, WALLPAPER):
-    exec(['feh', '--bg-scale', CURRENT_THEME_WALLPAPER])
+def apply(SEQ, WALLPAPER, load=False, no_wallpaper=False):
+    if not no_wallpaper: exec(['feh', '--bg-scale', CURRENT_THEME_WALLPAPER])
     exec(['xrdb', '-merge', CURRENT_THEME_COLORS_RESOURCE])
-    if which('i3'): exec(['i3-msg','reload'], stdout=null,
-                                              stderr=null)
     exec(['pkill', '-USR1', 'polybar'])
+    if which('i3'): exec(['i3-msg','restart'], stdout=null,
+                                               stderr=null)
+
     for TERM in glob(TTY):
         with open(TERM, 'w') as T:
             T.write(SEQ)
@@ -115,6 +125,10 @@ p.add_argument('-c', '--create-new',
                 metavar='<theme-name>' ,required=False,
                     help='allow to create a new theme')
 
+p.add_argument('--no-wallpaper',
+               action='store_true', required=False,
+                    help='change theme without changing the wallpaper')
+
 p.add_argument('-a', '--add-new',
                 metavar='<theme-name>', required=False,
                     help='allow to import a theme from a folder')
@@ -142,7 +156,10 @@ if __name__ == '__main__':
         [print(t) if t != 'current' else None for t in INSTALLED_THEMES]
 
     if args.theme: # CHANGE THE CURRERNT THEMES
+        if args.theme == "current":
+            exit(0)
         SELECTED_THEME = join(THEMES_DIR, args.theme)
+        check(SELECTED_THEME)
         WALLPAPER = join(SELECTED_THEME, 'wallpaper.jpg')
         COLOR_SCHEME = join(SELECTED_THEME, 'colors')
         COLORS = get_colors(COLOR_SCHEME)
@@ -150,11 +167,11 @@ if __name__ == '__main__':
         COLORS = [C.rstrip() for C in COLORS][4:]
         SEQ = build_colors(COLORS, SPECIALS)
         save_theme(COLORS, SPECIALS, WALLPAPER, COLOR_SCHEME, SEQ)
-        apply(SEQ, WALLPAPER) 
+        apply(SEQ, WALLPAPER, False, args.no_wallpaper) 
 
     if args.last: # LOAD THE LAST SELECTED THEME
         SEQ = get_seq()
-        apply(SEQ, CURRENT_THEME_WALLPAPER)        
+        apply(SEQ, CURRENT_THEME_WALLPAPER, True, args.no_wallpaper)        
 
     if args.create_new:
         print('function<create_new> TO IMPLEMENT')
